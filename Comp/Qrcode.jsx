@@ -1,148 +1,139 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Dimensions, TouchableOpacity, BackHandler } from 'react-native';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
-import { Camera, FlashMode} from "expo-camera";
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, Dimensions, TouchableOpacity, TextInput, Alert, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Alert } from 'react-native';
+import api from '../api';
 
 export default function Qrcode() {
     const navigation = useNavigation();
-    const [hasPermission, setHasPermission] = useState(null);
-    const [scanned, setScanned] = useState(false);
-    const [flashEnabled, setFlashEnabled] = useState(false);
-    const [cameraType, setCameraType] = useState(Camera.Constants.Type.back);
-; // State to manage flashlight
+    const [number, onChangeNumber] = useState('');
+    const fadeAnim = useRef(new Animated.Value(0)).current; // Initial value for opacity: 0
+    const buttonAnim = useRef(new Animated.Value(1)).current; // Initial value for scale: 1
 
     useEffect(() => {
-      const getCameraPermissions = async () => {
-        const { status } = await Camera.requestCameraPermissionsAsync();
-        setHasPermission(status === "granted");
-      };
-  
-      getCameraPermissions();
-    }, []);
-  
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+        }).start();
+    }, [fadeAnim]);
 
-    const handleBarCodeScanned = ({ type, data }) => {
-      setScanned(true);
-      Alert.alert(
-        `Bar code with type ${type} and data ${data} has been scanned!`,
-        'Do you want to navigate to Test2?',
-        [
-          {
-            text: 'Cancel',
-            onPress: () => {
-              setScanned(false);
-            },
-            style: 'cancel',
-          },
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate to Test2 and pass data
-              navigation.navigate('Geo', { scannedData: data });
-            },
-          },
-        ],
-        { cancelable: false }
-      );
-    };
-    
-    const toggleFlash = () => {
-      setFlashEnabled(!flashEnabled);
-    };
+    const handleSearch = async () => {
+        try {
+            Alert.alert('Chargement', 'Recherche de véhicule...');
+            console.log(`${api}/vehicule/get/${number}`)
+            const response = await fetch(`${api}/vehicule/get/${number}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            });
 
-    const toggleCameraType = () => {
-      setCameraType(
-        cameraType === Camera.Constants.Type.back
-          ? Camera.Constants.Type.front
-          : Camera.Constants.Type.back
-      );
+            // Check if the response is not empty
+            const textResponse = await response.text();
+            if (!textResponse) {
+                throw new Error('Empty response from server');
+            }
+
+            // Try to parse the response
+            const vehicle = JSON.parse(textResponse);
+            if (response.ok) {
+                Alert.alert('Succès', `Véhicule <${number}> existe`);
+                navigation.navigate("Geo", { vehicle });
+
+            } else {
+                Alert.alert('Erreur', "Le matricule n'existe pas");
+            }
+        } catch (error) {
+          Alert.alert('Erreur', "Le matricule n'existe pas");
+        }
     };
 
-    if (hasPermission === null) {
-      return <Text>Requesting for camera permission</Text>;
-    }
-    if (hasPermission === false) {
-      return <Text>No access to camera</Text>;
-    }
-    
+    const handlePressIn = () => {
+        Animated.spring(buttonAnim, {
+            toValue: 0.95,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const handlePressOut = () => {
+        Animated.spring(buttonAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+        }).start();
+    };
+
     return (
-      <View style={styles.fullScreen}>
-        <Camera
-       style={styles.fullScreen}
-       type={cameraType}
-       flashMode={flashEnabled ? Camera.Constants.FlashMode.torch : Camera.Constants.FlashMode.off}
-       onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-        />
-        <View style={styles.viewtext}>
-          <Text style={styles.text}>
-            Scannez le code QR pour les voitures
-          </Text>
+        <View style={styles.fullScreen}>
+            <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+                <Text style={styles.title}>Enter Matricule</Text>
+                <TextInput
+                    style={styles.input}
+                    onChangeText={onChangeNumber}
+                    value={number}
+                    placeholder="Enter Matricule"
+                    keyboardType="default"
+                />
+                <Animated.View style={{ transform: [{ scale: buttonAnim }] }}>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={handleSearch}
+                        onPressIn={handlePressIn}
+                        onPressOut={handlePressOut}
+                    >
+                        <Text style={styles.buttonText}>Search</Text>
+                    </TouchableOpacity>
+                </Animated.View>
+            </Animated.View>
         </View>
-        <View style={styles.btn_sw}>
-          <TouchableOpacity style={styles.btn} onPress={toggleCameraType}>
-            <Ionicons name="camera-reverse" size={30} color="white" />
-          </TouchableOpacity>
-        </View> 
-        <View style={styles.btn_fl}>
-          <TouchableOpacity style={styles.btn} onPress={toggleFlash}>
-            <Ionicons name="flashlight" size={30} color="white" />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.btn_cl}>
-          <TouchableOpacity style={styles.btn} onPress={() => BackHandler.exitApp()}>
-            <FontAwesome style={styles.icon} name="close" size={30} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
     );
-};
+}
 
 const styles = StyleSheet.create({
-  fullScreen: { 
-    width: Dimensions.get('window').width, 
-    height: Dimensions.get('window').height,
-  }, 
-  viewtext: {
-    position: 'absolute',
-    backgroundColor: 'rgba(0, 0, 0,0.5)',
-    borderRadius: 20,
-    top: 20,
-    alignSelf: 'center',
-    marginTop: 40,
-  },
-  text: {
-    color: 'white',
-    paddingHorizontal: 25,
-    paddingVertical: 15,
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  btn_sw: {
-    position: 'absolute',
-    alignSelf: 'center',
-    bottom: 50,
-    left: 40,
-  },
-  btn_fl: {
-    position: 'absolute',
-    alignSelf: 'center',
-    bottom: 50,
-  },
-  btn_cl: {
-    position: 'absolute',
-    alignSelf: 'center',
-    bottom: 50,
-    right: 40,
-  },
-  btn: {
-    width: 60,
-    height: 60,
-    borderRadius: 50,
-    paddingBottom: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+    fullScreen: {
+        width: Dimensions.get('window').width,
+        height: Dimensions.get('window').height,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f5f5f5',
+    },
+    container: {
+        width: '80%',
+        padding: 20,
+        borderRadius: 10,
+        backgroundColor: '#ffffff',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        color: '#333333',
+        textAlign: 'center',
+    },
+    input: {
+        height: 50,
+        borderColor: '#cccccc',
+        borderWidth: 1,
+        borderRadius: 5,
+        paddingHorizontal: 10,
+        marginBottom: 20,
+    },
+    button: {
+        backgroundColor: '#007BFF',
+        paddingVertical: 15,
+        borderRadius: 5,
+        alignItems: 'center',
+    },
+    buttonText: {
+        color: '#ffffff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 });
