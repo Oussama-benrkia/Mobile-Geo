@@ -30,6 +30,7 @@ export default function Qrcode() {
 
             // Check if the response is not empty
             const textResponse = await response.text();
+            console.log(textResponse)
             if (!textResponse) {
                 throw new Error('Empty response from server');
             }

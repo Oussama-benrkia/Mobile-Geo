@@ -3,8 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import React from 'react';
 import Qrcode from './Comp/Qrcode';
 import Geo from './Comp/Geo';
-import Test2 from './Comp/Test2';
-import Test1 from './Comp/Test1';
+
 
 //import { config } from "@gluestack-ui/config";
 //import { GluestackUIProvider } from "@gluestack-ui/themed"
