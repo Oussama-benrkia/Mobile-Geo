@@ -29,3 +29,4 @@ On Android: Open the Expo Go app, tap on "Scan QR Code," and scan the QR code di
   iOS Simulator: If you have Xcode installed, you can press i in the terminal to open the iOS simulator.
 Android Emulator: If you have Android Studio installed, you can press a in the terminal to open the Android emulator.
 
+# play video *play me .mp4* to see simulation:
