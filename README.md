@@ -30,3 +30,4 @@ On Android: Open the Expo Go app, tap on "Scan QR Code," and scan the QR code di
 Android Emulator: If you have Android Studio installed, you can press a in the terminal to open the Android emulator.
 
 # play video *play me .mp4* to see simulation:
+https://drive.google.com/file/d/1MEpZwA-vRGpN0lHU6WQ_ps3a5IrWVnHx/view?usp=sharing
